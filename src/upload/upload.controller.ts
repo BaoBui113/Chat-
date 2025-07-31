@@ -50,7 +50,8 @@ export class UploadController {
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@UploadedFile() file: MulterFile) {
-    const imageUrl = await this.s3Service.uploadFile(file);
-    return { url: imageUrl };
+    const fileKey = await this.s3Service.uploadFile(file);
+    const signedUrl = this.s3Service.getSignedCloudFrontUrl(fileKey);
+    return { signedUrl };
   }
 }
