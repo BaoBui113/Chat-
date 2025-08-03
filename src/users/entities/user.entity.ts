@@ -1,5 +1,6 @@
 import { BaseEntity } from 'src/entities/base.entity';
-import { Column, Entity } from 'typeorm';
+import { Message } from 'src/messages/entities/message.entity';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -17,4 +18,10 @@ export class User extends BaseEntity {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @OneToMany(() => Message, (message) => message.sender)
+  senderMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receiverMessages: Message[];
 }
