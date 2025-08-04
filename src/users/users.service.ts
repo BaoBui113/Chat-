@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { buildSelect } from 'src/helper';
+import { Message } from 'src/messages/entities/message.entity';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 
@@ -44,5 +45,29 @@ export class UserService {
 
   async findByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { email } });
+  }
+
+  async getUsersWithLastMessage(loggedInUserId: string) {
+    return this.userRepository
+      .createQueryBuilder('u')
+      .leftJoinAndMapOne(
+        'u.lastMessage', // gắn vào thuộc tính ảo lastMessage
+        Message,
+        'm',
+        `m.id = (
+        SELECT m2.id
+        FROM messages m2
+        WHERE 
+          ((m2."senderId" = u.id AND m2."receiverId" = :loggedInUserId)
+          OR (m2."senderId" = :loggedInUserId AND m2."receiverId" = u.id))
+        ORDER BY m2."createdAt" DESC
+        LIMIT 1
+      )`,
+        { loggedInUserId },
+      )
+      .leftJoinAndSelect('m.sender', 'sender')
+      .leftJoinAndSelect('m.receiver', 'receiver')
+      .where('u.id != :loggedInUserId', { loggedInUserId })
+      .getMany();
   }
 }
