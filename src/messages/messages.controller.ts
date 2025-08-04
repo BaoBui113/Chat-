@@ -38,13 +38,6 @@ export class MessagesController {
     return this.messagesService.getMessages(senderId, receiverId);
   }
 
-  @UseGuards(AuthGuard)
-  @Get('last-messages')
-  lastUserMessages(@Request() req: { user: { sub: string } }) {
-    const senderId = req.user.sub;
-    return this.messagesService.lastUserMessages(senderId);
-  }
-
   @Get()
   findAll() {
     return this.messagesService.findAll();

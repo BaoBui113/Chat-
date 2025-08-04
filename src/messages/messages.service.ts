@@ -31,39 +31,6 @@ export class MessagesService {
     return this.messageRepo.save(message);
   }
 
-  async lastUserMessages(currentUserId: string): Promise<Message[]> {
-    // Lấy tin nhắn cuối cùng từ mỗi user đã nhắn tin với user hiện tại
-    const subQuery = this.messageRepo
-      .createQueryBuilder('sub_message')
-      .select('MAX(sub_message.createdAt)', 'maxCreatedAt')
-      .addSelect('sub_message.senderId', 'senderId')
-      .where('sub_message.receiverId = :currentUserId', { currentUserId })
-      .groupBy('sub_message.senderId');
-
-    return this.messageRepo
-      .createQueryBuilder('message')
-      .innerJoin(
-        `(${subQuery.getQuery()})`,
-        'latest',
-        'message.senderId = latest.senderId AND message.createdAt = latest.maxCreatedAt',
-      )
-      .where('message.receiverId = :currentUserId', { currentUserId })
-      .setParameters(subQuery.getParameters())
-      .select([
-        'message.id',
-        'message.content',
-        'message.createdAt',
-        'message.senderId',
-        'message.receiverId',
-      ])
-      .leftJoin('message.sender', 'sender')
-      .addSelect(['sender.id', 'sender.username'])
-      .leftJoin('message.receiver', 'receiver')
-      .addSelect(['receiver.id', 'receiver.username'])
-      .orderBy('message.createdAt', 'DESC')
-      .getMany();
-  }
-
   findAll() {
     return this.messageRepo.find();
   }
@@ -87,7 +54,31 @@ export class MessagesService {
           sender: { id: senderId },
           receiver: { id: receiverId },
         },
+        {
+          sender: { id: receiverId },
+          receiver: { id: senderId },
+        },
       ],
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        sender: {
+          id: true,
+          username: true,
+          email: true,
+        },
+        receiver: {
+          id: true,
+          username: true,
+          email: true,
+        },
+      },
+      relations: {
+        sender: true,
+        receiver: true,
+      },
       order: { createdAt: 'ASC' },
     });
   }
