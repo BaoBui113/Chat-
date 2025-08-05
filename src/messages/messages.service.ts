@@ -13,22 +13,27 @@ export class MessagesService {
     private readonly messageRepo: Repository<Message>,
     private readonly redisService: RedisService, // Assuming RedisService is already defined and imported
   ) {}
-  async create(
-    createMessageDto: CreateMessageDto,
-    senderId: string,
-  ): Promise<Message> {
+  async create(createMessageDto: CreateMessageDto, senderId: string) {
     const message = this.messageRepo.create({
       ...createMessageDto,
       sender: { id: senderId },
       receiver: { id: createMessageDto.receiverId },
     });
+    console.log('message1 234', message);
+
+    this.messageRepo.save(message);
+    const fullMessage = await this.messageRepo.findOne({
+      where: { id: message.id },
+      relations: ['sender', 'receiver'], // 👈 load user data
+    });
 
     await this.redisService.publish('chat', {
+      ...fullMessage,
       senderId,
       receiverId: createMessageDto.receiverId,
       content: createMessageDto.content,
     });
-    return this.messageRepo.save(message);
+    return fullMessage;
   }
 
   findAll() {

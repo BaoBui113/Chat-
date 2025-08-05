@@ -27,22 +27,43 @@ export class ChatGateway
 
   constructor(private readonly redisService: RedisService) {}
 
-  async afterInit() {
+  afterInit() {
     console.log('ChatGateway initialized');
-    this.redisService.subscribe('chat', (message) => {
-      const { receiverId, senderId, ...rest } = message;
-      this.server.to(`user_${senderId}_${receiverId}`).emit('chat', rest);
-      console.log(`Message sent to user_${senderId}_${receiverId}:`, rest);
-    });
+    this.redisService.subscribe(
+      'chat',
+      (message: {
+        receiverId: string;
+        senderId: string;
+        [key: string]: any;
+      }) => {
+        const { receiverId, senderId, ...rest } = message;
+        console.log(
+          `Received message from ${senderId} to ${receiverId}:`,
+          rest,
+        );
+
+        this.server.to(`user_${receiverId}`).emit('chat', {
+          senderId,
+          receiverId,
+          ...rest,
+        });
+
+        this.server.to(`user_${senderId}`).emit('chat', {
+          senderId,
+          receiverId,
+          ...rest,
+        });
+      },
+    );
   }
 
   handleConnection(socket: Socket) {
-    const userId = socket.handshake.query.userId;
-    const senderId = socket.handshake.query.senderId;
+    const userId = socket.handshake.query.userId as string;
+
     console.log('in vao socket');
 
     if (userId) {
-      socket.join(`user_${userId}_${senderId}`);
+      socket.join(`user_${userId}`);
       console.log(`[Socket] User ${userId} connected`);
       console.log(
         '📋 All rooms:',
