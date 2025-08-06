@@ -11,6 +11,7 @@ import { MessagesModule } from './messages/messages.module';
 import { RedisModule } from './redis.module';
 import { UploadModule } from './upload/upload.module';
 import { UsersModule } from './users/users.module';
+import { CallModule } from './call/call.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module';
     UploadModule,
     RedisModule,
     MessagesModule,
+    CallModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway],

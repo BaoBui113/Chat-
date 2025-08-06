@@ -1,3 +1,4 @@
+import { Call } from 'src/call/entities/call.entity';
 import { BaseEntity } from 'src/entities/base.entity';
 import { Message } from 'src/messages/entities/message.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
@@ -24,4 +25,10 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Message, (message) => message.receiver)
   receiverMessages: Message[];
+
+  @OneToMany(() => Call, (call) => call.caller)
+  callerCalls: Call[];
+
+  @OneToMany(() => Call, (call) => call.receiver)
+  receiverCalls: Call[];
 }

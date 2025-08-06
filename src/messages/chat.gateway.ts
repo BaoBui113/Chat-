@@ -3,6 +3,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -55,6 +56,29 @@ export class ChatGateway
         });
       },
     );
+
+    // Subscribe to call events
+    this.redisService.subscribe(
+      'call',
+      (callEvent: { type: string; call: any }) => {
+        const { type, call } = callEvent;
+        console.log(`Call event: ${type}`, call);
+
+        // Send to caller
+        this.server.to(`user_${call.caller.id}`).emit('call_event', {
+          type,
+          call,
+          role: 'caller',
+        });
+
+        // Send to receiver
+        this.server.to(`user_${call.receiver.id}`).emit('call_event', {
+          type,
+          call,
+          role: 'receiver',
+        });
+      },
+    );
   }
 
   handleConnection(socket: Socket) {
@@ -73,6 +97,49 @@ export class ChatGateway
   }
 
   handleDisconnect(socket: Socket) {
-    console.log(`[Socket] Disconnected: ${socket.id}`);
+    const userId = socket.handshake.query.userId as string;
+
+    if (userId) {
+      console.log(`[Socket] User ${userId} disconnected`);
+      socket.leave(`user_${userId}`);
+    }
+  }
+
+  @SubscribeMessage('call_offer')
+  handleCallOffer(
+    socket: Socket,
+    data: { offer: any; callId: string; to: string },
+  ) {
+    console.log('Call offer received:', data.callId);
+    this.server.to(`user_${data.to}`).emit('call_offer', {
+      offer: data.offer,
+      callId: data.callId,
+      from: socket.handshake.query.userId,
+    });
+  }
+
+  @SubscribeMessage('call_answer')
+  handleCallAnswer(
+    socket: Socket,
+    data: { answer: any; callId: string; to: string },
+  ) {
+    console.log('Call answer received:', data.callId);
+    this.server.to(`user_${data.to}`).emit('call_answer', {
+      answer: data.answer,
+      callId: data.callId,
+      from: socket.handshake.query.userId,
+    });
+  }
+
+  @SubscribeMessage('ice_candidate')
+  handleIceCandidate(
+    socket: Socket,
+    data: { candidate: any; callId: string; to: string },
+  ) {
+    this.server.to(`user_${data.to}`).emit('ice_candidate', {
+      candidate: data.candidate,
+      callId: data.callId,
+      from: socket.handshake.query.userId,
+    });
   }
 }
